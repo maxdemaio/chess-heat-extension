@@ -1,0 +1,14 @@
+{
+  "name": "Chess Heat Extension",
+  "version": "1.0",
+  "description": "Get the current Chess.com member name",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Chess.com Member Name Extension"
+  },
+  "permissions": ["tabs", "activeTab", "scripting"]
+}
