@@ -5,6 +5,12 @@ window.addEventListener("DOMContentLoaded", () => {
     // This updates the HTML with the extracted member name from the URL
     console.log(response);
 
-    document.getElementById("member-name").textContent = response.name;
+    const memberNameEl = document.getElementById("member-name");
+
+    if (response.name) {
+      memberNameEl.textContent = response.name;
+    } else {
+      memberNameEl.textContent = "Unable to get member name";
+    }
   });
 });

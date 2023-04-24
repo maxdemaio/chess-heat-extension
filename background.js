@@ -16,16 +16,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       const tab = tabs[0];
       if (tab && tab.url) {
-        // This sends the URL to the content.js script to extract the member name
-        chrome.tabs.sendMessage(tab.id, { message: "extract_member_name", url: tab.url }, (response) => {
-          // This sends the extracted member name back to the popup.js script to update the HTML
-          sendResponse({ message: "member_name", name: response.name });
-        });
+        if (tab.url.startsWith("https://www.chess.com/member/")) {
+          // Parse the member name from the URL
+          const memberName = tab.url.split("https://www.chess.com/member/")[1];
+          // Send the member name as the response
+          sendResponse({ name: memberName });
+        } else {
+          console.error("Not on a proper chess.com/member URL.");
+          sendResponse({ name: null });
+        }
       } else {
-        console.log("Unable to get current tab URL.");
+        console.error("Unable to get current tab URL.");
+        sendResponse({ name: null });
       }
     });
+    // This tells the sendResponse function to wait for a response asynchronously
+    return true;
   }
-  // This tells the sendResponse function to wait for a response asynchronously
-  return true;
 });
