@@ -8,7 +8,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === "get_url") {
     // This gets the URL of the current active tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      console.log(tabs);
       if (!tabs || tabs.length === 0) {
         console.log("Unable to get current tab URL.");
         return;
