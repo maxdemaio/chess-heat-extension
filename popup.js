@@ -1,23 +1,13 @@
 import { getResults } from "./results.js";
 
-// This function runs when the index.html is loaded (extension opened and script type is module)
-// This sends a message to the background.js script to get the current active tab URL
-chrome.runtime.sendMessage({ message: "get_url" }, (response) => {
-  // This updates the HTML with the extracted member name from the URL
-  const memberNameEl = document.getElementById("member-name");
-  if (response.name) {
-    memberNameEl.textContent = response.name;
-  } else {
-    memberNameEl.textContent = "Unable to get member name";
-  }
-});
-
 /* Constants/globals */
 const DAYS_IN_MONTH_NO_LEAP = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = ["January", "Febuary", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS_OF_THE_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const CURR_YEAR = new Date().getFullYear();
+const DEFAULT_HUE = 0;
+let dataCells; // updated in fetchData to all cells with data
 
 const currentTooltip = document.createElement("div");
 currentTooltip.classList.add("svg-tip", "svg-tip-one-line");
@@ -26,12 +16,44 @@ currentTooltip.hidden = true;
 document.body.appendChild(currentTooltip); // Add the tooltip to the DOM
 /* End constants/globals */
 
+generateTable();
+setYearField(CURR_YEAR);
+
+// This function runs when the index.html is loaded (extension opened and script type is module)
+// This sends a message to the background.js script to get the current active tab URL
+chrome.runtime.sendMessage({ message: "get_url" }, (response) => {
+  // This updates the HTML with the extracted member name from the URL
+  const memberNameEl = document.getElementById("member-name");
+  if (response.name) {
+    memberNameEl.textContent = response.name;
+    fetchData(response.name, CURR_YEAR);
+  } else {
+    memberNameEl.textContent = "Unable to get username";
+  }
+});
+
 /* Update max year */
 const yearInput = document.getElementById("form-input-year");
 yearInput.max = CURR_YEAR;
 /* End update max year */
 
-generateTable();
+function clearTable() {
+  const targetDiv = document.getElementById("heatmap");
+  const tbodyCollection = targetDiv.getElementsByTagName("tbody")[0].children;
+
+  Array.from(tbodyCollection).map((elem) => {
+    const tdToUpdate = Array.from(elem.children).slice(1);
+    tdToUpdate.map((item) => {
+      item.classList.remove("pulseOpacity");
+      item.style.backgroundColor = "hsla(0, 0%, 50%, 0.15)";
+      item.getElementsByTagName("span")[0].innerText = "No Data";
+      item.style.visibility = "visible";
+      delete item.dataset.hsl;
+      delete item.dataset.text;
+      item.classList.remove("data-cell");
+    });
+  });
+}
 
 function generateTable() {
   const container = document.getElementById("heatmap");
@@ -145,6 +167,53 @@ function generateTable() {
   container.appendChild(descriptorSpan);
 }
 
+function isPreviousYearFunc(year) {
+  return year < CURR_YEAR;
+}
+
+function setYearField(year) {
+  const yearField = document.getElementById("form-input-year");
+  yearField.value = year;
+}
+
+function pulseCells() {
+  const targetDiv = document.getElementById("heatmap");
+  const tbodyCollection = targetDiv.getElementsByTagName("tbody")[0].children;
+
+  Array.from(tbodyCollection).map((elem) => {
+    const tdToUpdate = Array.from(elem.children).slice(1);
+    tdToUpdate.map((item) => {
+      item.classList.add("pulseOpacity");
+    });
+  });
+}
+
+function easeInPowerBounded(x, yMin, yMax, power = 1) {
+  // Ensure that x is within the range of 0 and 1
+  x = Math.max(0, Math.min(1, x));
+
+  // Calculate y, the output value of the "ease in" function
+  // Scale and shift y to fit within the range of yMin and yMax
+  return x ** power * (yMax - yMin) + yMin;
+}
+
+function getDateStrings(currentDate) {
+  const startDate = new Date(currentDate); // start date
+  startDate.setMonth(startDate.getMonth() - 11);
+  startDate.setDate(1);
+
+  const dateStrings = [];
+  for (let d = startDate; d <= currentDate; d.setDate(d.getDate() + 1)) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateString = `${year}.${month}.${day}`;
+    dateStrings.push(dateString);
+  }
+
+  return dateStrings;
+}
+
 function hideTooltip() {
   if (currentTooltip) {
     currentTooltip.hidden = true;
@@ -198,4 +267,206 @@ function showTooltip(event) {
     currentTooltip.classList.remove("left");
     currentTooltip.classList.remove("right");
   }
+}
+
+async function fetchData(username, year) {
+  // Disable submit button until end
+  const submitButton = document.getElementById("submit-button");
+  submitButton.disabled = true;
+
+  const user = String(username).trim().toLocaleLowerCase();
+  const gameData = {};
+  let totalWins = 0;
+  let totalLosses = 0;
+  let totalDraws = 0;
+  let totalGames = 0;
+  const isLeapYear = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+  const isPreviousYear = isPreviousYearFunc(year);
+  const today = isPreviousYear ? new Date(year, 11, 31) : new Date();
+  const oneYearAgo = isPreviousYear ? new Date(year, 0, 1) : new Date().setFullYear(today.getFullYear() - 1);
+  const dateArray = getDateStrings(today);
+  const nextMonth = isPreviousYear ? 1 : new Date().getMonth() + 2;
+  let firstDayDate = today;
+  let maxGamesPlayed = 0;
+  let daySum = 0;
+  let prevColSum = 0;
+
+  pulseCells();
+
+  for (let i = 0; i < 12; i++) {
+    let loopMonth;
+    let loopYear;
+    if (nextMonth + i <= 12) {
+      loopMonth = String(nextMonth + i).padStart(2, "0");
+      loopYear = isPreviousYear ? String(year) : String(year - 1);
+    } else {
+      loopMonth = String(nextMonth + i - 12).padStart(2, "0");
+      loopYear = String(year);
+    }
+
+    const url = `https://api.chess.com/pub/player/${user}/games/${loopYear}/${loopMonth}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch data");
+    const { games } = await response.json();
+
+    if (games.length === 0) continue; // Skip months with no games
+
+    for (let j = 0; j < games.length; j++) {
+      const currGameDate = new Date(games[j].end_time * 1000);
+      const year = currGameDate.getFullYear();
+      const month = ("0" + (currGameDate.getMonth() + 1)).slice(-2);
+      const day = ("0" + currGameDate.getDate()).slice(-2);
+      const dateString = `${year}.${month}.${day}`;
+      let result = null;
+
+      // Remove Games Outside of Lower Bound Month
+      if (currGameDate < oneYearAgo) continue;
+
+      // Get Oldest Date
+      if (currGameDate < firstDayDate) firstDayDate = currGameDate;
+
+      const playerBlack = games[j].black.username.toLowerCase();
+      const playerWhite = games[j].white.username.toLowerCase();
+      if (playerWhite === user.toLowerCase()) result = games[j].white.result;
+      if (playerBlack === user.toLowerCase()) result = games[j].black.result;
+
+      const [win, loss, draw] = getResults(result);
+      totalWins += win;
+      totalLosses += loss;
+      totalDraws += draw;
+      totalGames++;
+
+      if (gameData[dateString]) {
+        // Stats for the day
+        gameData[dateString]["win"] += win;
+        gameData[dateString]["loss"] += loss;
+        gameData[dateString]["draw"] += draw;
+        gameData[dateString]["total"]++;
+
+        // Update max games played
+        if (gameData[dateString]["total"] > maxGamesPlayed) maxGamesPlayed = gameData[dateString]["total"];
+      } else {
+        gameData[dateString] = {
+          win: win,
+          loss: loss,
+          draw: draw,
+          total: 1,
+        };
+      }
+    }
+  }
+
+  const firstDayOffset = new Date(firstDayDate.setDate(1)).getDay();
+  let dayIncrement = firstDayOffset;
+
+  clearTable();
+
+  const lightnessCiel = 66;
+  const lightnessFloor = 11;
+  const saturationCiel = 70;
+  const saturationFloor = 50;
+  const threshold = 4;
+
+  // Hide Cells that don't appear in the year (Before)
+  for (let cellCountBefore = 0; cellCountBefore < dayIncrement; cellCountBefore++) {
+    const dataCellBefore = document.querySelector(`[data-coord="x0-y${cellCountBefore}"`);
+    dataCellBefore.style.visibility = "hidden";
+  }
+
+  // Loop over all the dates in the rolling year
+  for (const dateString of dateArray) {
+    const cellId = `x${Math.floor(dayIncrement / 7)}-y${dayIncrement % 7}`;
+    const dataCell = document.querySelector(`[data-coord="${cellId}"`);
+    const options = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
+
+    // ensure cross-browser compatibility with standardized date
+    const dateParts = dateString.split(".");
+    const standardizedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
+    const datePretty = new Date(standardizedDate).toLocaleDateString("en-US", options);
+
+    if (gameData.hasOwnProperty(dateString)) {
+      const totalGames = gameData[dateString]["total"];
+      const lightness = Math.floor(easeInPowerBounded(1 - (totalGames - threshold) / (maxGamesPlayed - threshold), lightnessFloor, lightnessCiel, 5));
+      const saturation = Math.floor(easeInPowerBounded(1 - (totalGames - threshold) / (maxGamesPlayed - threshold), saturationFloor, saturationCiel, 3));
+      const text = `[${gameData[dateString]["win"]}-${gameData[dateString]["loss"]}-${gameData[dateString]["draw"]}] on ${datePretty}`;
+
+      dataCell.dataset.date = dateString;
+      dataCell.dataset.text = text;
+
+      // Update popup text
+      dataCell.querySelector("span").textContent = text;
+
+      if (totalGames >= 1) {
+        dataCell.classList.add("data-cell");
+        dataCell.style.backgroundColor = `hsl(${DEFAULT_HUE}, ${saturation}%, ${lightnessCiel}%)`;
+        // Store the HSL values as a custom attribute on the td element
+        dataCell.dataset.hsl = `${DEFAULT_HUE},${saturation},${lightness}`;
+      }
+      if (totalGames > threshold) {
+        dataCell.classList.add("data-cell");
+        dataCell.style.backgroundColor = `hsl(${DEFAULT_HUE}, ${saturation}%, ${lightness}%)`;
+        dataCell.dataset.hsl = `${DEFAULT_HUE},${saturation},${lightness}`;
+      }
+    } else {
+      dataCell.querySelector("span").textContent = `[0-0-0] on ${datePretty}`;
+      dataCell.style.backgroundColor = "hsla(0, 0%, 50%, 0.15)";
+    }
+
+    dayIncrement++;
+  }
+
+  // Hide Cells that don't appear in the year (After)
+  while (dayIncrement < 54 * 7) {
+    const cellId = `x${Math.floor(dayIncrement / 7)}-y${dayIncrement % 7}`;
+    const dataCellAfter = document.querySelector(`[data-coord="${cellId}"`);
+    dataCellAfter.style.visibility = "hidden";
+
+    dayIncrement++;
+  }
+
+  // Set Width of Month Headers
+  for (let j = 0; j < 12; j++) {
+    const monthIndex = (j + nextMonth - 1) % 12;
+
+    daySum += DAYS_IN_MONTH_NO_LEAP[monthIndex] + (j === 0 ? firstDayOffset : 0) + (j === 1 && isLeapYear ? 1 : 0);
+
+    const colWidth = Math.floor(daySum / 7) - prevColSum;
+
+    const headElem = document.querySelector(`[data-month="month${j}"]`);
+    headElem.setAttribute("colspan", String(colWidth));
+    headElem.childNodes[0].innerText = MONTHS_LONG[monthIndex];
+    headElem.childNodes[1].innerText = MONTHS_SHORT[monthIndex];
+
+    prevColSum += colWidth;
+  }
+
+  // Set new data cells
+  dataCells = document.querySelectorAll(".data-cell");
+  // Update total wins/losses/draws/total and user/year
+  const winInfo = document.getElementById("winInfo");
+  winInfo.innerText = totalWins;
+  const yearInfo = document.getElementById("yearInfo");
+  if (year == CURR_YEAR) {
+    yearInfo.innerText = "the past year";
+  } else {
+    yearInfo.innerText = year;
+  }
+  const userInfo = document.getElementById("usernameInfo");
+  userInfo.innerText = user;
+  const lossInfo = document.getElementById("lossInfo");
+  lossInfo.innerText = totalLosses;
+  const drawInfo = document.getElementById("drawInfo");
+  drawInfo.innerText = totalDraws;
+  const totalInfo = document.getElementById("totalGameInfo");
+  totalInfo.innerText = totalGames;
+
+  // Re-enable hue input and submit button at end
+  rangeInput.disabled = false;
+  rangeInput.style.opacity = 1;
+  submitButton.disabled = false;
 }

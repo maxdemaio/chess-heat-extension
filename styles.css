@@ -1,11 +1,17 @@
 body {
-  min-width: 400px;
+  color: #262626; /* neutral-50 */
+  background-color: #f7f7f7; /* neutral-800 */
 }
-
+main {
+  padding: 3em 3em 1em 3em;
+  font-size: 1em;
+  line-height: 1.5em;
+  font-family: system-ui, -apple-system, sans-serif;
+}
 h1 {
-  margin: 0px;
+  margin: 0em 0em 1em 0em;
+  text-align: center;
   font-weight: bolder;
-  font-family: "Kaisei Tokumin", serif;
   font-size: 2rem;
   line-height: 2rem;
 }
@@ -75,6 +81,14 @@ h1 {
   overflow-x: auto;
   overflow-y: hidden;
   word-wrap: break-word;
+}
+#heatmap-info {
+  margin-top: 8px;
+  font-size: 0.8em;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: space-between;
 }
 #heatmap-wrapper {
   max-width: 100%;
