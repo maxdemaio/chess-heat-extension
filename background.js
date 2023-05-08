@@ -21,11 +21,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           // Send the member name as the response
           sendResponse({ name: memberName });
         } else {
-          console.error("Not on a proper chess.com/member URL.");
+          console.log("Not on a proper chess.com/member URL.");
           sendResponse({ name: null });
         }
       } else {
-        console.error("Unable to get current tab URL.");
+        console.log("Unable to get current tab URL.");
         sendResponse({ name: null });
       }
     });
