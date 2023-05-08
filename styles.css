@@ -3,13 +3,13 @@ body {
   background-color: #f7f7f7; /* neutral-800 */
 }
 main {
-  padding: 3em 3em 1em 3em;
+  padding: 1em;
   font-size: 1em;
   line-height: 1.5em;
   font-family: system-ui, -apple-system, sans-serif;
 }
 h1 {
-  margin: 0em 0em 1em 0em;
+  margin: 0px 0px 8px 0px;
   text-align: center;
   font-weight: bolder;
   font-size: 2rem;
@@ -18,6 +18,16 @@ h1 {
 #member-wrapper {
   margin: 0px;
 }
+.chess-link {
+  color: #dc2626;
+}
+.chess-link:hover {
+  color: #b91c1c;
+}
+#hero-para {
+  margin: 0em 0em 1em 0em;
+}
+
 /* Less/more colors examples */
 #colors {
   display: flex;
