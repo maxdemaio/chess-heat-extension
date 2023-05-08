@@ -4,7 +4,11 @@
 
 ---
 
-## How it works
+# How it works
+
+Visit any Chess.com user's profile and open the extension to see their chess consistency! So, if you visit `https://chess.com/member/max_mayo`, the extension icon will turn red indicating it's a valid URL. If it's not a valid Chess.com user profile URL, the icon will be gray. Once you click on it, it will load up the current year's heatmap. You can also submit the form for other years!
+
+## How it works (Chrome extension stuff)
 
 The `popup.js` script is loaded by the `index.html` file when the user clicks on the extension icon. This script is responsible for modifying the content of index.html and updating the user interface.
 
