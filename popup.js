@@ -35,6 +35,10 @@ chrome.runtime.sendMessage({ message: "get_url" }, (response) => {
   }
 });
 
+chrome.action.setBadgeBackgroundColor({ color: "red" }, () => {
+  /* ... */
+});
+
 /* Update max year */
 const yearInput = document.getElementById("form-input-year");
 yearInput.max = CURR_YEAR;

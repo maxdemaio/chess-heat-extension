@@ -1,7 +1,40 @@
 // This function runs when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed or updated.");
+  // Change icon to green when we are on a chess.com/member/* website
+  // https://stackoverflow.com/questions/64473519/how-to-disable-gray-out-page-action-for-chrome-extension/64475504#64475504
+  // https://developer.chrome.com/docs/extensions/reference/declarativeContent/
+  chrome.declarativeContent.onPageChanged.removeRules(async () => {
+    chrome.declarativeContent.onPageChanged.addRules([
+      {
+        conditions: [
+          new chrome.declarativeContent.PageStateMatcher({
+            pageUrl: { urlContains: "chess.com/member", schemes: ["https"] },
+          }),
+        ],
+        actions: [
+          new chrome.declarativeContent.SetIcon({
+            imageData: {
+              16: await loadImageData("static/favicon-16x16-red.png"),
+              32: await loadImageData("static/favicon-32x32-red.png"),
+            },
+          }),
+          chrome.declarativeContent.ShowAction ? new chrome.declarativeContent.ShowAction() : new chrome.declarativeContent.ShowPageAction(),
+        ],
+      },
+    ]);
+  });
 });
+
+// SVG icons aren't supported yet
+async function loadImageData(url) {
+  const img = await createImageBitmap(await (await fetch(url)).blob());
+  const { width: w, height: h } = img;
+  const canvas = new OffscreenCanvas(w, h);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h);
+}
 
 // This function listens for a message from the popup.js script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

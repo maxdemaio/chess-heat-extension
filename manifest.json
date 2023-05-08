@@ -1,14 +1,18 @@
 {
   "name": "Chess Heat Extension",
   "version": "1.0",
-  "description": "Get the current Chess.com member name",
+  "description": "Visualize your chess.com chess consistency with a heatmap! Built by Jeff Boek, Mark Khoo, and Max DeMaio.",
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "index.html",
-    "default_title": "Chess.com Member Name Extension"
+    "default_title": "Chess Heat Extension",
+    "default_icon": {
+      "16": "static/favicon-16x16.png",
+      "32": "static/favicon-32x32.png"
+    }
   },
-  "permissions": ["tabs", "activeTab", "scripting"]
+  "permissions": ["tabs", "activeTab", "scripting", "declarativeContent"]
 }
