@@ -29,6 +29,9 @@ chrome.runtime.sendMessage({ message: "get_url" }, (response) => {
     fetchData(response.name, CURR_YEAR);
   } else {
     memberNameEl.textContent = "Unable to get username";
+    // Disable submit button
+    const submitButton = document.getElementById("submit-button");
+    submitButton.disabled = true;
   }
 });
 
@@ -195,6 +198,11 @@ function easeInPowerBounded(x, yMin, yMax, power = 1) {
   // Calculate y, the output value of the "ease in" function
   // Scale and shift y to fit within the range of yMin and yMax
   return x ** power * (yMax - yMin) + yMin;
+}
+
+function isValidChessComYear(year) {
+  const minYear = 2007;
+  return !isNaN(year) && year >= minYear && year <= CURR_YEAR;
 }
 
 function getDateStrings(currentDate) {
@@ -466,7 +474,24 @@ async function fetchData(username, year) {
   totalInfo.innerText = totalGames;
 
   // Re-enable hue input and submit button at end
-  rangeInput.disabled = false;
-  rangeInput.style.opacity = 1;
   submitButton.disabled = false;
 }
+
+/* Form logic */
+document.getElementById("form").addEventListener("submit", (e) => {
+  // Prevent the form from refreshing the page
+  e.preventDefault();
+
+  // Get the value of the inputs
+  const user = document.getElementById("member-name").innerText.toLowerCase();
+  const year = parseInt(document.getElementById("form-input-year").value);
+
+  // Validate year
+  if (!isValidChessComYear(year)) {
+    alert("Year must be greater than 2007 and not in the future.");
+    return;
+  }
+
+  // Call the function that handles the chess.com requests
+  fetchData(user, year);
+});
