@@ -281,6 +281,15 @@ function showTooltip(event) {
   }
 }
 
+async function fetchUserArchives(username) {
+  const url = `https://api.chess.com/pub/player/${username}/games/archives`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("Failed to fetch data");
+  const { archives } = await resp.json();
+
+  return archives;
+}
+
 async function fetchData(username, year) {
   // Disable submit button until end
   const submitButton = document.getElementById("submit-button");
@@ -305,6 +314,10 @@ async function fetchData(username, year) {
 
   pulseCells();
 
+  const archives = await fetchUserArchives(user);
+
+  const validArchives = [];
+
   for (let i = 0; i < 12; i++) {
     let loopMonth;
     let loopYear;
@@ -317,6 +330,12 @@ async function fetchData(username, year) {
     }
 
     const url = `https://api.chess.com/pub/player/${user}/games/${loopYear}/${loopMonth}`;
+
+    if (archives.includes(url)) validArchives.push(url);
+  }
+
+  for (let i = 0; i < validArchives.length; i++) {
+    const url = validArchives[i];
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch data");
     const { games } = await response.json();
