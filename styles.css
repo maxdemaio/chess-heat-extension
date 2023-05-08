@@ -25,8 +25,23 @@ h1 {
   align-items: center;
   gap: 8px;
 }
+#info {
+  text-align: center;
+}
 .exampleBox {
   border-radius: 2px;
+}
+#exampleBox1 {
+  color: rgb(229, 108, 108);
+}
+#exampleBox2 {
+  color: rgb(153, 36, 36);
+}
+#exampleBox3 {
+  color: rgb(97, 26, 26);
+}
+#exampleBox4 {
+  color: rgb(42, 14, 14);
 }
 #grayBox {
   color: hsla(0, 0%, 50%, 0.15);
@@ -85,10 +100,11 @@ h1 {
 #heatmap-info {
   margin-top: 8px;
   font-size: 0.8em;
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-flow: row;
+  justify-content: center;
+  gap: 6px;
 }
 #heatmap-wrapper {
   max-width: 100%;
